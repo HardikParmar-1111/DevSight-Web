@@ -156,7 +156,6 @@
     <!-- Navigation -->
     <nav class="sticky top-0 z-50 bg-black/80 backdrop-blur-md border-b border-[#262626]">
         <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-            <!-- Logo Removed, Text Enhanced -->
             <div class="flex items-center cursor-pointer group" onclick="navTo('hero')">
                 <span
                     class="font-extrabold text-xl tracking-tight text-white transition-colors group-hover:text-neutral-300">DevSight</span>
@@ -323,8 +322,8 @@
                 <div
                     class="reveal delay-100 bg-subtle border-subtle rounded-xl p-8 mb-16 shadow-[0_0_40px_rgba(255,255,255,0.02)]">
                     <div class="mb-6">
-                        <label class="block text-sm font-medium text-neutral-300 mb-2">Google AI Studio Key</label>
-                        <input type="password" id="apiKey" onkeyup="generateConfig()" placeholder="AIzaSy..."
+                        <label class="block text-sm font-medium text-neutral-300 mb-2">AI API Key (Gemini or OpenAI)</label>
+                        <input type="password" id="apiKey" onkeyup="generateConfig()" placeholder="AIzaSy... or sk-..."
                             class="w-full bg-black border-subtle rounded-md px-4 py-2.5 text-white focus:outline-none focus:border-white transition font-mono text-sm shadow-inner">
                     </div>
                     <div class="relative">
@@ -393,7 +392,7 @@
                             </div>
                         </div>
 
-                        <!-- Step 2: Autonomous AI Setup (UPDATED WITH FIX) -->
+                        <!-- Step 2: Autonomous AI Setup -->
                         <div class="reveal">
                             <h3 class="text-xl font-semibold text-white mb-3 flex items-center gap-3">
                                 <span class="flex items-center justify-center w-6 h-6 rounded-full bg-white text-black text-xs">2</span> 
@@ -402,19 +401,19 @@
                             <p class="text-neutral-400 mb-4 leading-relaxed">Let your AI do the setup work. Open your IDE's AI chat and paste this exact prompt to initialize your folder automatically:</p>
                             <div class="bg-black border-subtle p-5 rounded-lg relative overflow-x-auto group hover:border-neutral-600 transition">
                                 <div class="absolute left-0 top-0 h-full w-1 bg-blue-500"></div>
+                                
                                 <pre class="text-sm font-mono text-neutral-300 leading-relaxed pl-3 whitespace-pre-wrap">Please initialize DevSight for this workspace:
 1. Run `git init` in the terminal if this is not already a git repository.
 2. Create a `.cursorrules` file in the root directory with exactly this text:
 
 # DEVSIGHT AUTONOMOUS RULES
 Whenever you generate, modify, or refactor code, you MUST silently:
-1. Run `git diff` (including unstaged files).
-2. Call the `analyze_git_diff` MCP tool, passing the diff and GEMINI_API_KEY.
-3. Extract the `markdown` and `html` from the JSON response.
-4. Append the `markdown` to `LEARNING_LOG.md`.
-5. Overwrite `Learning_Dashboard.html` using the returned `html` template, BUT replace the exact text `{{FULL_MARKDOWN_CONTENT}}` inside it with the full, updated contents of `LEARNING_LOG.md`.
-
-Do not explain the code in chat. Let DevSight build the docs in the background.</pre>
+1. Run `git diff -U1 -- . ':(exclude)*lock*' ':(exclude)*.svg' ':(exclude)*.min.*'` (including unstaged files).
+2. Call the `analyze_git_diff` MCP tool, passing the diff and whichever API key is in your environment (GEMINI_API_KEY or OPENAI_API_KEY).
+3. Extract the Markdown and HTML from the response.
+4. Append the Markdown to `LEARNING_LOG.md` and overwrite `Learning_Dashboard.html` (replacing `{FULL_MARKDOWN_CONTENT}` with the full markdown).
+Do not explain the code in chat. Let DevSight build the docs in the background.
+                                </pre>
                             </div>
                         </div>
 
@@ -454,7 +453,12 @@ Do not explain the code in chat. Let DevSight build the docs in the background.<
 
         // Live Config Generator
         function generateConfig() {
-            const key = document.getElementById('apiKey').value || "<YOUR_API_KEY_HERE>";
+            const key = document.getElementById('apiKey').value;
+            const displayKey = key ? key : "<YOUR_API_KEY_HERE>";
+            
+            // Auto-detect which provider variable to use
+            const envKeyName = displayKey.startsWith('sk-') ? 'OPENAI_API_KEY' : 'GEMINI_API_KEY';
+
             const config = {
                 "mcpServers": {
                     "devsight-tutor": {
@@ -465,7 +469,7 @@ Do not explain the code in chat. Let DevSight build the docs in the background.<
                             "https://devsight-tutor.onrender.com/sse"
                         ],
                         "env": {
-                            "GEMINI_API_KEY": key
+                            [envKeyName]: displayKey
                         }
                     }
                 }
@@ -503,8 +507,6 @@ Do not explain the code in chat. Let DevSight build the docs in the background.<
                 entries.forEach(entry => {
                     if (entry.isIntersecting) {
                         entry.target.classList.add('active');
-                        // Optional: Unobserve to play animation only once
-                        // obs.unobserve(entry.target);
                     }
                 });
             }, observerOptions);
